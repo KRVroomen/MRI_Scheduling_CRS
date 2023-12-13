@@ -234,7 +234,7 @@ scantime1 = Distribution(stats.norm(loc=TYPE_1_SCAN_TIME_MEAN ,scale=TYPE_1_SCAN
 scantime2 = Distribution(stats.gamma(ALFA_GAMMA_TYPE_2, scale=BETA_GAMMA_TYPE_2))
 arrivalrate1 = Distribution(stats.expon(scale=TYPE_1_TIME_BETWEEN_ARRIVALS_MEAN))
 arrivalrate2 = Distribution(stats.norm(loc=TYPE_2_TIME_BETWEEN_ARRIVALS_MEAN, scale=TYPE_2_TIME_BETWEEN_ARRIVALS_STD))
-sched_scan_t1 = 1500 # = 25 minutes. TYPE_1_TIME_BETWEEN_ARRIVALS_MEAN rounded down to times 5 minutes.
+sched_scan_t1 = 1500 # = 25 minutes. TYPE_1_SCAN_TIME_MEAN rounded down to times 5 minutes.
 sched_scan_t2 = 2400 # = 40 minutes.
 
 num_runs = 50
