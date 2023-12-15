@@ -1,0 +1,259 @@
+---
+title: "Computational Skills"
+output: html_document
+date: "2023-11-24"
+---
+
+```{R Libraries}
+library(fitdistrplus) # test the fit of a distribution
+library(ISLR) # to get data from R library
+library(car) # VIF and AIC/BIC
+library(boot) # to do bootstrap
+library(leaps) # to do best subset
+library(glmnet) # regularisation, ridge and lasso
+library(tree) # to do trees 
+library(MASS) # to do trees => go together with tree
+library(randomForest) # to do bagging and random forest
+library(ggplot2) # visualisation
+library(dplyr) # visualisation
+library(lubridate) # visualisation
+library(xtable)
+library(extRemes)
+```
+
+
+```{R Dataset}
+Scandata <- read.csv('ScanRecords.csv', stringsAsFactors = TRUE)
+# Inspect the data structure
+names(Scandata)
+attach(Scandata) # attach the names of the colum to the data => no need to assign
+summary(Scandata)
+View(Scandata)
+# Multiply 'Duration' by 60 for the entire dataset
+Scandata$Duration <- Scandata$Duration * 60
+data <- na.omit(Scandata) # remove NA values
+Type1<-subset(data, PatientType == "Type 1") 
+Type2<-subset(data, PatientType == "Type 2") 
+```
+
+```{R Visualisation Type1 Duration}
+summary(Type1)
+
+png("CF1dur.png", width = 6, height = 5, units = "in", res = 300)
+descdist(Type1$Duration, discrete = FALSE, boot = 500)
+dev.off() 
+
+# Fit a normal distribution 
+fit <- fitdist(Type1$Duration, "norm")
+
+# Create a histogram with a density plot of the fitted normal distribution
+
+png("histodur1.png", width = 6, height = 4, units = "in", res = 300)
+hist(Type1$Duration, breaks = 20, prob = TRUE, col = "grey", border = "black", 
+     xlab = "Duration", main = "Histogram with Fitted Normal Distribution")
+lines(density(Type1$Duration), col = "red", lwd = 2)  # Overlay density plot
+dev.off()
+
+# summary for Type 1 Duration
+summary(Type1$Duration)
+
+# Create a table manually using relevant information
+latex_table <- data.frame(
+  Min = 5.624,
+  Q1 = 22.087,
+  Median = 26.153,
+  Mean = 25.960,
+  Q3 = 29.814,
+  Max = 42.535
+)
+
+# Convert the table to LaTeX format using xtable
+latex_output <- xtable(latex_table, caption = "Summary of Duration for Type 1 Patients")
+print(latex_output, caption.placement = "top", include.rownames = TRUE)
+
+
+```
+
+```{R Visualisation Patient 1 Time Interval}
+# Correct the indexing for timedif1 creation to match Type1
+time_dif_1 <- data.frame(differences = rep(NA, nrow(Type1)))
+
+for(i in 2:nrow(Type1)) {
+  if(Type1$Date[i] == Type1$Date[i - 1]) {
+    time_dif_1[i - 1, 1] <- Type1$Time[i] - Type1$Time[i - 1]
+  }
+}
+
+# Ensure timedif1 has the same number of rows as Type1
+timedif1 <- data.frame(TimeDiff = time_dif_1$differences)
+
+# Add TimeDiff column to Type1
+Type1$TimeDiff <- timedif1$TimeDiff
+
+# Mkae Cullen Frey graph
+png("CF1timedif.png", width = 6, height = 5, units = "in", res = 300)
+descdist(Type1$TimeDiff, discrete = FALSE, boot = 500)
+dev.off()
+
+# make histogram
+png("histotime1.png", width = 6, height = 4, units = "in", res = 300)
+hist(Type1$TimeDiff, breaks = 20, prob = TRUE, col = "grey", border = "black", 
+     xlab = "Duration", main = "Histogram with Fitted Normal Distribution")
+lines(density(Type1$TimeDiff), col = "red", lwd = 2)  # Overlay density plot
+dev.off()
+
+# Extract specific information from the summary
+summary(Type1$TimeDiff)
+
+# Create a table manually using relevant information
+latex_table <- data.frame(
+  Min = 0,
+  Q1 = 14.00,
+  Median = 35.00,
+  Mean = 50.78,
+  Q3 = 68.25,
+  Max = 185.00,
+  sd = 53.42
+)
+
+# Convert the table to LaTeX format using xtable
+latex_output <- xtable(latex_table, caption = "Summary of Time Interval  for Type 1 Patients")
+print(latex_output, caption.placement = "top", include.rownames = TRUE)
+
+```
+```{R Type1 Patient per day}
+# Convert 'Date' column to Date format if not already done
+Type1$Date <- as.Date(Type1$Date)
+
+# Group by date and count the number of patients per day
+patients_summary <- Type1 %>%
+  group_by(Date) %>%
+  summarise(patients_count = n())
+
+# Summary statistics for the number of patients per day
+summary(patients_summary$patients_count)
+mean(patients_summary$patients_count)
+sd(patients_summary$patients_count)
+
+# Manually create a data frame with summary statistics
+summary_df <- data.frame(
+  Min = 10.00,
+  Q1 = 13.50,
+  Median = 16.00,
+  Mean = 16.48,  
+  Q3 = 19.00,
+  Max = 23.00,
+  sd = 3.80
+)
+
+# Convert to LaTeX format
+latex_output <- xtable(summary_df, caption = "Summary of Patients per Day", label = "tab:patients_summary")
+
+# Print the LaTeX table
+print(latex_output, caption.placement = "top")
+```
+
+```{R Visualisation Type2 Duration}
+png("CFdur2.png", width = 6, height = 5, units = "in", res = 300)
+descdist(Type2$Duration, discrete = FALSE, boot = 500)
+dev.off()
+
+fit_result <- fitdistr(Type2$Duration, densfun = "gamma")
+
+png("histodur2.png", width = 6, height = 4, units = "in", res = 300)
+hist(Type2$Duration, freq = FALSE, col = "grey", main = "Fitted Gamma Distribution", xlab = "Duration")
+curve(dgamma(x, fit_result$estimate[1], fit_result$estimate[2]), 
+      col = "red", lwd = 2, add = TRUE)
+dev.off()
+
+#
+
+# Extract specific information from the summary
+summary(Type2$Duration)
+
+# Create a table manually using relevant information
+latex_table <- data.frame(
+  Min = 13.24,
+  Q1 = 31.44,
+  Median = 38.80,
+  Mean = 40.16,
+  Q3 = 47.79,
+  Max = 68.81,
+  sd = 11.24
+)
+
+# Convert the table to LaTeX format using xtable
+latex_output <- xtable(latex_table, caption = "Fitted Gamma Distribution for Type 2 Scan Duration")
+print(latex_output, caption.placement = "top", include.rownames = TRUE)
+
+```
+
+```{R Visualisation Type 2 Time Interval}
+time_dif_2 <- data.frame(differences = rep(NA, times = 238))
+for(i in 2:238){
+if(Type2$Date[i]==Type2$Date[i-1]){
+time_dif_2[i-1,1] <- Type2$Time[i]- Type2$Time[i-1]
+}
+}
+time_dif_2_no_NA <- c(na.omit(time_dif_2$differences))
+
+
+png("CFtime2.png", width = 6, height = 5, units = "in", res = 300)
+descdist(time_dif_2_no_NA, discrete = FALSE,boot = 500)
+dev.off()
+
+png("histotime2.png", width = 6, height = 4, units = "in", res = 300)
+hist(time_dif_2_no_NA, breaks = 20, prob = TRUE, col = "grey", border = "black", 
+     xlab = "Duration", main = "Histogram with Fitted Normal Distribution")
+lines(density(time_dif_2_no_NA), col = "red", lwd = 2)  # Overlay density plot
+dev.off()
+
+summary(time_dif_2_no_NA)
+sd(time_dif_2_no_NA)
+# Create a table manually using relevant information
+latex_table <- data.frame(
+  Min = 6.00,
+  Q1 = 66.00,
+  Median = 87.00,
+  Mean = 85.14,
+  Q3 = 106,
+  Max = 175,
+  sd = 30.58
+)
+
+# Convert the table to LaTeX format using xtable
+latex_output <- xtable(latex_table, caption = "Fitted Gamma Distribution for Type 2 Scan Duration")
+print(latex_output, caption.placement = "top", include.rownames = TRUE)
+
+```
+
+```{R Type 2 Patient per day}
+Type2$Date <- as.Date(Type2$Date)
+
+# Group by date and count the number of patients per day
+patients_summary <- Type2 %>%
+  group_by(Date) %>%
+  summarise(patients_count = n())
+
+# Summary statistics for the number of patients per day
+summary(patients_summary$patients_count)
+mean(patients_summary$patients_count)
+sd(patients_summary$patients_count)
+# Manually create a data frame with summary statistics
+summary_df <- data.frame(
+  Min = 9.00,
+  Q1 = 9.00,
+  Median = 10.00,
+  Mean = 10.39,  
+  Q3 = 11.00,
+  Max = 13.00,
+  sd = 1.23
+)
+
+# Convert to LaTeX format
+latex_output <- xtable(summary_df, caption = "Summary of Patients per Day", label = "tab:patients_summary")
+
+# Print the LaTeX table
+print(latex_output, caption.placement = "top") 
+```
+
